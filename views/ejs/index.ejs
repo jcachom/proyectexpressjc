@@ -1,0 +1,275 @@
+
+ <!DOCTYPE html>
+ <html lang="en">
+ <head>
+     <meta charset="UTF-8">
+     <meta http-equiv="X-UA-Compatible" content="IE=edge">
+     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+     <title>Document</title>
+     <script src="./socket.io/socket.io.js"></script>
+     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css"
+        integrity="sha384-B0vP5xmATw1+K9KRQjQERJvTumQW0nPEzvF6L/Z6nronJ3oUOFUFpCjEUQouq2+l" crossorigin="anonymous">
+   
+    
+       
+ </head>
+ <body>
+    
+
+
+    <div class="container">
+
+        <form class="prod-form" id="addProducto" action="" method="">
+  
+              <div style="width: 400PX;">
+                    <div class="row">
+                          <h1 style="color: brown;">Ingrese Datos(Ejs)</h1>
+                    </div>
+                    <div class="row">
+                          <label for="street1_id" class="control-label">Producto</label>
+                          <input type="text" name="title" id="title" class="form-control" placeholder="" required>      
+                    </div>
+                    <div class="row">
+                          <label for="street1_id" class="control-label">Precio</label>
+                          <input type="number" name="price" id="price" class="form-control" placeholder="" required>
+                    </div>
+                    <div class="row">
+                          <label for="street1_id" class="control-label">Url Foto</label>
+                          <input type="url" name="thumbnail" id="thumbnail" class="form-control" placeholder="" required>
+                    </div>
+                    <div class="row mt-3">
+                       
+                          <button type="submit" class="btn btn-primary" id="btnEnviar">Enviar Producto</button>     
+                                                                                
+                    </div> 
+
+                    
+                    
+                                             
+              </div>
+
+            </form>
+
+           
+              <div class="table-responsive text-nowrap table-gridscontainer">
+
+                <table class="table table-success" id="tb_listproductos">
+                    <thead>
+
+                        <tr>                              
+                            <th>Nombre</th>
+                            <th>Precio</th>
+                            <th>Foto</th>                                                        
+                        </tr>
+                    </thead>
+                    <tbody id="tb_listproductosBody">
+                        <!-- -->
+                        <% if (productos.length > 0) { %>  
+                               <%  for(producto of productos){ %>
+                               <tr>
+                                <td> <%= producto.title %>  </td>
+                                <td> <%= producto.price %>  </td>                      
+                                <td> <img width="30" height="30" src=<%= producto.thumbnail %>>   </td>
+                              </tr>                             
+                              <% } ; %> 
+
+                            <% } %>
+                    </tbody>
+                </table>
+            </div>
+
+          
+        <% if (productos.length==0) { %>                            
+            <p class="alert alert-danger">No se encontraron datos</p>        
+       <% } %>
+
+
+  
+       <div id="container_chat">  
+        <h1 style="color: brown;">Centro Mensajes</h1> 
+        <form id="data_user">
+  
+          <input type="text" id="email_user" placeholder="Email" required></input>  
+          <p id="contenedor_texto" style="background-color: yellow; padding: 20px 30px; color: black;"></p>
+          <input type="text" id="inputext" placeholder="Ingrese texto" required></input>
+          <button id="sendsocket">Enviar</button>        
+  
+        </form>                                                   
+                                               
+      </div>
+
+
+          
+  </div>
+
+
+
+
+   
+</div>
+
+
+  
+ 
+
+  <script>      
+        let socket=null ;
+       
+        socket=io();
+             
+        let form_data_producto=document.getElementById("addProducto"); 
+        let parrafo=document.getElementById("contenedor_texto");
+        let sendsocket=document.getElementById("sendsocket");
+        let form_data_user=document.getElementById("data_user");
+     
+ 
+     
+
+  form_data_producto.addEventListener("submit",e=>{            
+            e.preventDefault();
+                                                       
+            let title=document.getElementById("title").value;
+            let price=document.getElementById("price").value;
+            let thumbnail=document.getElementById("thumbnail").value;
+
+            producto ={
+                title:title,
+                price:price,
+                thumbnail:thumbnail
+            }
+          
+            fetch('http://localhost:8080/productos', {
+            method: 'POST',
+            headers: {
+            "Content-Type": "application/json",
+            },
+            body: JSON.stringify(producto)
+            })
+            .then(res => res.json())
+            .then(res=> {console.log(res);});   
+            
+            
+            fetch('http://localhost:8080/productos')
+            .then(res => res.json())
+            .then(res => {
+            socket.emit("addProducto",JSON.stringify(res));    
+            })
+            .catch( err => console.error(err));
+
+
+           document.getElementById("title").value="";
+           document.getElementById("price").value="";
+           document.getElementById("thumbnail").value="";
+
+            
+           
+        }) 
+
+
+       socket.on("loadProducto",data=>{
+            console.log("lista productos",data);
+            let dataList=JSON.parse(data);
+            let html="";
+            dataList.forEach(item => {              
+                html = html +
+                          `<tr>                           
+                            <td>${item.title}</td>                           
+                             <td>${item.price}</td>
+                             <td><img width="25" height="30" src=${item.thumbnail} alt="no encontrado"></td>                           
+                            </tr>`;
+               });
+               $("#tb_listproductosBody").html(html);              
+        })
+ 
+     /* manejo de chat */      
+     form_data_user.addEventListener("submit",e=>{   
+      e.preventDefault();
+      let f = new Date();
+           let fecha = f.getDate() + "/" + (f.getMonth() +1) + "/" + f.getFullYear();
+           let hora =f.getHours() + ":" +  f.getMinutes() + ":" + f.getSeconds()  ;
+
+           let email_user=document.getElementById("email_user").value;
+           let inputext=document.getElementById("inputext").value;
+
+
+          let sendMenssage={
+            
+              name:email_user,
+              email:email_user,
+              hora: fecha + " " +  hora,
+              mensaje:inputext
+          }
+
+          fetch('http://localhost:8080/mensaje', {
+            method: 'POST',
+            headers: {
+            "Content-Type": "application/json",
+            },
+            body: JSON.stringify(sendMenssage)
+            })
+            .then(res => res.json())
+            .then(res=> {console.log(res);}); 
+            
+            
+            fetch('http://localhost:8080/mensaje')
+            .then(res => res.json())
+            .then(res => {
+            socket.emit("mensaje",JSON.stringify(res));           
+            })
+            .catch( err => console.error(err));          
+           document.getElementById("inputext").value="";
+         
+       })
+
+       iniCarga();
+
+       function iniCarga(){
+
+        fetch('http://localhost:8080/mensaje')
+            .then(res => res.json())
+            .then(res => {           
+            let inner="";
+            let dataList= JSON.parse(JSON.stringify(res));
+             dataList.forEach(element => {   
+               
+              if ( element.name !="") {
+                inner=inner + `<span style="color:blue"> <b>  ${element.name}:</b> 
+                 </span> <span style="color:brown"> ${element.hora} </span> : 
+                 <span style="font-style: italic ; color:green"> ${element.mensaje} </span> </br>`;
+              }
+         
+              }); 
+           parrafo.innerHTML=inner;
+
+            })
+            .catch( err => console.error(err));
+
+       }
+
+
+       socket.on("listenserver",data=>{
+           console.log("Info enviada desde fillp",data);
+
+           let dataList =JSON.parse(data);          
+           let inner="";
+           dataList.forEach(element => {
+            
+              if ( element.name !="") {
+                inner=inner + `<span style="color:blue"> <b>  ${element.name}:</b> 
+                 </span> <span style="color:brown"> ${element.hora} </span> : 
+                 <span style="font-style: italic ; color:green"> ${element.mensaje} </span> </br>`;
+              }
+            
+              });
+              parrafo.innerHTML=inner;
+       })
+
+
+      
+       
+   </script>
+       <script src="http://code.jquery.com/jquery-1.11.0.min.js"></script>   
+      </body>
+     </html>
+  
+  
