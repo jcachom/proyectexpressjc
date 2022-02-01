@@ -1,112 +1,86 @@
+let { mongoose } = require("../config/database");
 
-const { config} =require("../config"); 
-const classDB =require("../config/db");
-const db_obj =new classDB("mysql");
-const db=db_obj.client_mysql ;
- 
- 
+let { Schema, model } = mongoose;
+
+let { productoSchema } = require("./esquemas/producto");
+let productoSchemaModel = new Schema(productoSchema);
+let productoModel = new model("productos", productoSchemaModel);
+
+const faker = require("faker");
+
 class ctnbd_producto {
-    constructor() {
-      
-       const main = async () => {
-        let response_tbl = await this.crearTablaProducto();  
-        let response_carga = await this.cargaMaestroProducto();               
-        }
-        main();
+  constructor() {}
 
+  async cargarProductosAleatorios() {
+    let listprod = null;
 
+    try {
+      for (let i = 0; i < 1; i++) {
+        let new_product_id = await this.getNewId();
+        const obj = {
+          id: new_product_id,
+          title: faker.commerce.productName(),
+          price: faker.commerce.price(1, 1000, 2),
+          thumbnail: faker.image.imageUrl(128, 128, "sports"),
+        };
 
-    }
+        productoModel.create(obj);
 
-   
-    async crearTablaProducto() {
-         
-        try {
-            if (! (await db.schema.hasTable('productos')) ) {
-                await db.schema.createTable('productos', table=>{
-                    table.increments("id").primary(),
-                    table.string("title"),    
-                    table.decimal('price', 8, 2),
-                    table.string("thumbnail")          
-                });
-              }                    
-        } catch (error) {
-            console.log(error);           
-        }
-
+        listprod = await this.listar_todo();
       }
-
-
-      async cargaMaestroProducto() {
-         
-       
-        try {
-            let data =[
-                {
-                    title: "casaca",
-                    price :"12.30",
-                    thumbnail :"https://cdn3.iconfinder.com/data/icons/fashion-beauty-vol-1/512/jacket_bomber_leather_clothes-128.png"                      
-                },
-                {
-                    title: "abrigo",
-                    price :"25.36",
-                    thumbnail :"https://cdn3.iconfinder.com/data/icons/fashion-beauty-vol-1/512/shorts_sports_clothes_pants-128.png"                      
-                }
-            ]
-           
-            let response=await db.from("productos").insert(data);
-              
-        } catch (error) {
-            console.log(error);    
-        }
-
-
-      }
-
-
-      
-
-     
-
-    async listar_todo() {
-
-        let response=await db.from("productos") ;
-        let listProductos=[] ;
-        for(let i=0; i < response.length; i++){
-            let  producto={
-                title:  response[i].title,
-                price:   response[i].price ,
-                thumbnail: response[i].thumbnail
-            }
-            listProductos.push(producto)
-        }
-   
-        if (listProductos.length==0){
-            return  { error : 'producto no encontrado' };
-           }else {
-             return  [...listProductos]        
-           }  
-
+    } catch (error) {
+      console.log(error);
     }
 
-    async  guardar(prod) {
-     
-        try {
-         
-            let data =[
-                {
-                    title:prod.title,
-                    price :prod.price,
-                    thumbnail : prod.thumbnail
-                }          
-            ]           
-            let response=await db.from("productos").insert(data);
-            return "1" ;
-        } catch (error) {
-            console.log(error);    
-        }
-    }
+    return listprod;
+  }
+
+  async getNewId() {
+    let listProd = await productoModel
+      .find({}, { id: 1, _id: 0 })
+      .sort({ id: -1 })
+      .limit(1);
+
     
+    let max = 1;
+    if (listProd.length > 0) {
+      max = listProd[0].id + 1;
+    }
+
+    return max;
+  }
+
+  async listar_todo() {
+    try {
+      let productos = await productoModel.find({});
+
+      if (productos.length == 0) {
+        return { error: "producto no encontrado" };
+      } else {
+        return productos;
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
+  async guardar(prod) {
+    try {
+      let new_product_id = await this.getNewId();
+      let obj = {
+        id: new_product_id,
+        title: prod.title,
+        price: prod.price,
+        thumbnail: prod.thumbnail,
+      };
+
+      productoModel.create(obj);
+
+      return "1";
+    } catch (error) {
+      console.log(error);
+    }
+  }
 }
 
-module.exports = ctnbd_producto
+module.exports = ctnbd_producto;

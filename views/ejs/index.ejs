@@ -9,8 +9,9 @@
      <script src="./socket.io/socket.io.js"></script>
      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css"
         integrity="sha384-B0vP5xmATw1+K9KRQjQERJvTumQW0nPEzvF6L/Z6nronJ3oUOFUFpCjEUQouq2+l" crossorigin="anonymous">
-   
-    
+       
+      
+
        
  </head>
  <body>
@@ -39,17 +40,18 @@
                     </div>
                     <div class="row mt-3">
                        
-                          <button type="submit" class="btn btn-primary" id="btnEnviar">Enviar Producto</button>     
-                                                                                
-                    </div> 
+                          <button type="submit" class="btn btn-primary m-lg-3" id="btnEnviar">Enviar Producto</button>
 
-                    
-                    
-                                             
+                           
+                                                                                
+                    </div>                                                                                  
               </div>
 
             </form>
 
+            <form class="prod-form" id="addProductoaleatorio" action="" method="">
+            <button type="submit" class="btn btn-primary" id="btnEnviarAleatorio">Enviar Producto aleatorio</button>  
+          </form>
            
               <div class="table-responsive text-nowrap table-gridscontainer">
 
@@ -87,9 +89,20 @@
   
        <div id="container_chat">  
         <h1 style="color: brown;">Centro Mensajes</h1> 
+
+        <p id="txtcompresion" style="background-color: orange; padding: 20px 30px; color: black;"></p>
+
         <form id="data_user">
   
-          <input type="text" id="email_user" placeholder="Email" required></input>  
+          <input type="email" id="email_user" placeholder="Email" required></input>  
+
+          <input type="text" id="nombre" placeholder="nombre" required></input> 
+          <input type="text" id="apellido" placeholder="apellido" required></input> 
+          <input type="number" id="edad" placeholder="edad" required></input> 
+          <input type="text" id="alias" placeholder="alias" required></input> 
+          <input type="text" id="avatar" placeholder="avatar" required></input> 
+
+
           <p id="contenedor_texto" style="background-color: yellow; padding: 20px 30px; color: black;"></p>
           <input type="text" id="inputext" placeholder="Ingrese texto" required></input>
           <button id="sendsocket">Enviar</button>        
@@ -121,9 +134,42 @@
         let parrafo=document.getElementById("contenedor_texto");
         let sendsocket=document.getElementById("sendsocket");
         let form_data_user=document.getElementById("data_user");
+
+        let botonEnvioAleatorio=document.getElementById("addProductoaleatorio");
+
      
  
-     
+        botonEnvioAleatorio.addEventListener("submit",e=>{            
+            e.preventDefault();
+   
+    
+    fetch('http://localhost:8080/api/productos-test', {
+            method: 'POST',
+            headers: {
+            "Content-Type": "application/json",
+            },
+            body: ""
+            })
+            .then(res => res.json())
+            .then(res=> {console.log(res);
+             // socket.emit("addProducto",JSON.stringify(res));  
+             socket.emit("addProducto",JSON.stringify(res));    
+            });  
+
+
+          }) 
+
+
+
+          function ActualizarVistaProdducto(){
+            fetch('http://localhost:8080/productos')
+            .then(res => res.json())
+            .then(res => {
+            socket.emit("addProducto",JSON.stringify(res));    
+            })
+            .catch( err => console.error(err));
+
+          }
 
   form_data_producto.addEventListener("submit",e=>{            
             e.preventDefault();
@@ -146,15 +192,12 @@
             body: JSON.stringify(producto)
             })
             .then(res => res.json())
-            .then(res=> {console.log(res);});   
+            .then(res=> {
+              console.log(res);
+              ActualizarVistaProdducto();
+            });   
             
-            
-            fetch('http://localhost:8080/productos')
-            .then(res => res.json())
-            .then(res => {
-            socket.emit("addProducto",JSON.stringify(res));    
-            })
-            .catch( err => console.error(err));
+           
 
 
            document.getElementById("title").value="";
@@ -181,23 +224,34 @@
                $("#tb_listproductosBody").html(html);              
         })
  
-     /* manejo de chat */      
+       
      form_data_user.addEventListener("submit",e=>{   
       e.preventDefault();
-      let f = new Date();
-           let fecha = f.getDate() + "/" + (f.getMonth() +1) + "/" + f.getFullYear();
-           let hora =f.getHours() + ":" +  f.getMinutes() + ":" + f.getSeconds()  ;
+     
 
            let email_user=document.getElementById("email_user").value;
+
+           let nombre=document.getElementById("nombre").value;
+           let apellido=document.getElementById("apellido").value;
+           let edad=document.getElementById("edad").value;
+           let alias=document.getElementById("alias").value;
+           let avatar=document.getElementById("avatar").value;
+
+
            let inputext=document.getElementById("inputext").value;
 
+           
 
           let sendMenssage={
-            
-              name:email_user,
-              email:email_user,
-              hora: fecha + " " +  hora,
-              mensaje:inputext
+            author:{
+              id : email_user,
+              nombre:nombre,
+              apellido:apellido,
+              edad :edad ,
+              alias:alias ,
+              avatar :avatar              
+            },
+            text: inputext 
           }
 
           fetch('http://localhost:8080/mensaje', {
@@ -229,17 +283,12 @@
             .then(res => res.json())
             .then(res => {           
             let inner="";
-            let dataList= JSON.parse(JSON.stringify(res));
-             dataList.forEach(element => {   
-               
-              if ( element.name !="") {
-                inner=inner + `<span style="color:blue"> <b>  ${element.name}:</b> 
-                 </span> <span style="color:brown"> ${element.hora} </span> : 
-                 <span style="font-style: italic ; color:green"> ${element.mensaje} </span> </br>`;
-              }
-         
-              }); 
-           parrafo.innerHTML=inner;
+            
+            let dataList =res;  
+
+
+            visualizarMensaje(dataList);
+       
 
             })
             .catch( err => console.error(err));
@@ -251,24 +300,60 @@
            console.log("Info enviada desde fillp",data);
 
            let dataList =JSON.parse(data);          
-           let inner="";
-           dataList.forEach(element => {
-            
-              if ( element.name !="") {
-                inner=inner + `<span style="color:blue"> <b>  ${element.name}:</b> 
-                 </span> <span style="color:brown"> ${element.hora} </span> : 
-                 <span style="font-style: italic ; color:green"> ${element.mensaje} </span> </br>`;
-              }
-            
-              });
-              parrafo.innerHTML=inner;
+        
+              visualizarMensaje(dataList);
+
        })
 
 
+
+    function visualizarMensaje(dataList){
+
+      const usuario =new normalizr.schema.Entity("usuario");              
+        const comentario  =new normalizr.schema.Entity("comentario",{
+            author :usuario 
+        } )
+
+        const lcomentario  =new normalizr.schema.Entity("lcomentario",{
+            chat :[comentario]
+        } )
+
+
+            let listComentDesNormalizado =normalizr.denormalize(dataList.result,lcomentario,dataList.entities);
+ 
+
+  let inputextCompresion=document.getElementById("txtcompresion");
+  let lenDesNormalizado =JSON.stringify(listComentDesNormalizado).length
+  let  lenNormalizado  =JSON.stringify(dataList).length ;
+  let compresion =(lenDesNormalizado/lenNormalizado)*100
+  compresion=compresion.toFixed(2);
+  inputextCompresion.innerHTML =`(Comprensión ${compresion} % )` ;
+
+  let inner="";
+
+  
+              listComentDesNormalizado.chat.forEach(element => {   
+          
+              if ( element.author.nombre !="") {
+                inner=inner + `<span style="color:blue"> <b>  ${element.author.nombre}:</b> 
+                 </span> <span style="color:brown"> ${element.fecha} </span> : 
+                 <span style="font-style: italic ; color:green"> ${element.text} </span> </br>`;
+              }
+
+         
+              }); 
+           parrafo.innerHTML=inner;
+
+    }
       
        
    </script>
        <script src="http://code.jquery.com/jquery-1.11.0.min.js"></script>   
+
+       <script src="https://cdn.jsdelivr.net/npm/normalizr@3.6.1/dist/normalizr.browser.min.js"></script> 
+
+      
+
       </body>
      </html>
   

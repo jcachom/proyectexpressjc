@@ -67,6 +67,20 @@ app.get("/productos",(req,res,next)=>{
    
 })
 
+ 
+app.post("/api/productos-test",(req,res,next)=>{  
+  
+  const main = async () => {
+  
+    retorno=await ctn_producto.cargarProductosAleatorios(); 
+    res.json(retorno);
+  };
+  main();
+
+})
+
+ 
+
 
 app.get("/mensaje",(req,res,next)=>{
  

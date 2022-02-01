@@ -1,84 +1,103 @@
-const { config} =require("../config"); 
-const classDB =require("../config/db");
-const db_obj =new classDB("sqlite");
-const db=db_obj.client_sqlite ;
+let { mongoose } = require("../config/database");
 
+let { Schema, model } = mongoose;
+
+let { mensajeSchema } = require("./esquemas/mensaje");
+let mensajeSchemaModel = new Schema(mensajeSchema);
+let mensajeModel = new model("mensajes", mensajeSchemaModel);
+
+let { schema, normalize, denormalize } = require("normalizr");
+let inspect = require("../utils/objectPrinter");
 
 class ctnbd_mensaje {
-    constructor() {
-       
-       const main = async () => {
-        let response_tbl = await this.crearTablaMensaje();                   
-        }
-        main();
+  constructor() {}
 
+  async listar_todo() {
+    let listMensaje = await mensajeModel.find({});
+
+    let listComentario = {
+      id: "1000",
+      chat: [],
+    };
+
+    let index = 0;
+
+    listMensaje.forEach(function (item) {
+      index = index + 1;
+      let obj = {
+        id: index,
+        author: { ...item.author },
+        text: item.text,
+        fecha: item.fecha,
+      };
+
+      listComentario.chat.push(obj);
+    });
+
+    const usuario = new schema.Entity("usuario");
+    const comentario = new schema.Entity("comentario", {
+      author: usuario,
+    });
+
+    const lcomentario = new schema.Entity("lcomentario", {
+      chat: [comentario],
+    });
+
+    let listComentNormalizado = normalize(listComentario, lcomentario);
+
+    inspect(listComentNormalizado);
+    console.log(
+      "longitud sin normalizar:",
+      JSON.stringify(listComentario).length
+    );
+    console.log(
+      "longitud normalizado:",
+      JSON.stringify(listComentNormalizado).length
+    );
+
+    let listComentDesNormalizado = denormalize(
+      listComentNormalizado.result,
+      lcomentario,
+      listComentNormalizado.entities
+    );
+    console.log(
+      "longitud desnormalizado:",
+      JSON.stringify(listComentDesNormalizado).length
+    );
+    inspect(listComentDesNormalizado);
+
+    return listComentNormalizado;
+  }
+
+  async guardar(objmensaje) {
+    try {
+      let hoy = new Date();
+      let fecha =
+        hoy.getDate() + "/" + (hoy.getMonth() + 1) + "/" + hoy.getFullYear();
+      let hora =
+        hoy.getHours() + ":" + hoy.getMinutes() + ":" + hoy.getSeconds();
+      let fecha_f = fecha + " " + hora;
+
+      let obj = {
+        author: {
+          id: objmensaje.author.id,
+          nombre: objmensaje.author.nombre,
+          apellido: objmensaje.author.apellido,
+          edad: objmensaje.author.edad,
+          alias: objmensaje.author.alias,
+          avatar: objmensaje.author.avatar,
+        },
+        fecha: fecha_f,
+        text: objmensaje.text,
+      };
+
+      mensajeModel.create(obj);
+
+      return "1";
+    } catch (error) {
+      console.log(error);
     }
-
-    async crearTablaMensaje() {
-         
-        try {
-            if (! (await db.schema.hasTable('chat_mensaje')) ) {
-                await db.schema.createTable('chat_mensaje', table=>{
-                    table.increments("id").primary(),
-                    table.string("name"),    
-                    table.string("hora"),    
-                    table.string("mensaje")          
-                });
-              }                    
-        } catch (error) {
-            console.log(error);           
-        }
-
-      }
-
-
-      async listar_todo() {
-                   
-        let response=await db.from("chat_mensaje") ;
-        let listMensaje=[] ;
-        for(let i=0; i < response.length; i++){
-            let  chatmensaje={
-                name:  response[i].name,
-                hora:   response[i].hora ,
-                mensaje: response[i].mensaje
-            }
-            listMensaje.push(chatmensaje)
-        }
-   
-        if (listMensaje.length==0){
-            return   [{ name : "",hora:"", mensaje:""}];
-           }else {
-             return  [...listMensaje] 
-           }  
-
-
-    }
-
-    async guardar(objmensaje) {        
-      
-     
-
-        try {
-         
-            let data =[
-                {
-                    name:objmensaje.name,
-                    hora :objmensaje.hora,
-                    mensaje : objmensaje.mensaje
-                }          
-            ]           
-            let response=await db.from("chat_mensaje").insert(data);
-            return "1" ;
-        } catch (error) {
-            console.log(error);    
-        }
-
-
-    }
-
-    
-
-  
+  }
 }
 
-module.exports = ctnbd_mensaje
+module.exports = ctnbd_mensaje;
