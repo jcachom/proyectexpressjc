@@ -1,4 +1,4 @@
-
+﻿
  <!DOCTYPE html>
  <html lang="en">
  <head>
@@ -15,14 +15,43 @@
        
  </head>
  <body>
+
+ 
+    <div class="container mt-3">
+
+      <form action="/logout" method="post" >
+
+        <h1 class="alert alert-success">
+         
+          <div class="row">
+            <div class="col">
+                <span class="float-left">
+                  BIENVENIDO , <%= user %>
+                </span>
+                <span class="float-right">
+                  <button class="btn btn-success mt-3  ml-lg-12">Desloguear</button>
+                </span>
+            </div>
+        </div>
+                                 
+        </h1>
+
+      </form>
+
+    </div>
+
+
+
+  
+    
+    <div class="container">
+
     
 
 
-    <div class="container">
-
         <form class="prod-form" id="addProducto" action="" method="">
   
-              <div style="width: 400PX;">
+              <div class="container">
                     <div class="row">
                           <h1 style="color: brown;">Ingrese Datos(Ejs)</h1>
                     </div>

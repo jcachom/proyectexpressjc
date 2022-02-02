@@ -45,6 +45,8 @@ class ctnbd_mensaje {
 
     let listComentNormalizado = normalize(listComentario, lcomentario);
 
+
+    /*
     inspect(listComentNormalizado);
     console.log(
       "longitud sin normalizar:",
@@ -65,6 +67,7 @@ class ctnbd_mensaje {
       JSON.stringify(listComentDesNormalizado).length
     );
     inspect(listComentDesNormalizado);
+    */
 
     return listComentNormalizado;
   }
