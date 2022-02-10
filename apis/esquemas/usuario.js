@@ -1,14 +1,14 @@
 const joi = require("joi");
  
  
-let email = joi.string();
+let username = joi.string();
 let password = joi.string();
  
  
 
 const usuarioSchema = {
  
-    email : email.required(),
+    username : username.required(),
     password : password.required()
 };
 
